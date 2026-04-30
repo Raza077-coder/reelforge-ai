@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1777583177764,
+    "timestamp": "2026-05-01 02:06",
+    "topic": "3 habits that changed my life",
+    "mode": "Platform",
+    "platform": "YouTube Shorts",
+    "tone": "\u2014",
+    "output": {
+      "hook": "Life changing habits ahead",
+      "script": "I used to feel stuck, like I was just going through the motions, until I discovered three habits that completely flipped my life around. First, I started waking up 30 minutes earlier each day to meditate and set intentions. This clarity carried over into my work and relationships. Second, I began taking a daily walk outside, which boosted my mood and energy levels. And third, I made a commitment to learning something new every week, whether it's a book or an online course. These habits have helped me stay focused, motivated, and excited for the future.",
+      "cta": "Try them out and let me know how they impact your life",
+      "hashtags": "selfimprovement, productivityhacks, mindfulness, personalgrowth, motivation, lifestylechanges, successstory"
+    }
+  },
+  {
+    "id": 1777583155682,
+    "timestamp": "2026-05-01 02:05",
+    "topic": "3 habits that changed my life",
+    "mode": "Platform",
+    "platform": "Instagram Reels",
+    "tone": "\u2014",
+    "output": {
+      "hook": "Life-changing habits ahead",
+      "script": "I used to be a hot mess, but then I started waking up at 6am, journaling daily, and moving my body for 10 minutes. Trust me, it's a game-changer! My mind is clearer, I'm more focused, and I'm actually getting stuff done.",
+      "cta": "Double tap if you're ready to upgrade your routine",
+      "hashtags": "selfcare, productivityhacks, morningroutine, wellness, mentalhealthmatters, habitformation, lifestylechanges"
+    }
+  },
+  {
+    "id": 1777583059545,
+    "timestamp": "2026-05-01 02:04",
+    "topic": "How to wake up at 5am",
+    "mode": "Quick",
+    "platform": "Both",
+    "tone": "\u2014",
+    "output": {
+      "hook1": "Wake up at 5am",
+      "hook2": "What if I told you 5am is the new happy hour?",
+      "script": "So you want to wake up at 5am... but your bed has other plans. ... Let's be real, it's tough. ... But here's the thing: the early morning hours are when the magic happens. ... You get a head start on your day, you get some quiet time to yourself... and you get to watch the sunrise, which is pretty amazing. ... So, how do you do it? ... Start by setting your alarm 15 minutes earlier each day... and place it across the room, so you have to get out of bed to turn it off. ... Then, create a morning routine that you actually enjoy, whether that's exercise, meditation, or reading. ... And finally, make a plan for the night before, so you're not scrambling in the morning. ... Trust me, it's worth it.",
+      "cta": "Start waking up at 5am tomorrow and change your life.",
+      "thumb1": "**Rise Early**",
+      "thumb2": "**Morning Game**",
+      "thumb3": "**5am Club: 10x Your Day**"
+    }
+  }
+]
