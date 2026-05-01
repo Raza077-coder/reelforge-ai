@@ -22,16 +22,21 @@ def load_env_file():
 
 load_env_file()
 
-# .env se keys session mein daal do (agar session mein nahi hain)
+# SECURE: API key loading - NO DISPLAY IN UI
 if "api_key" not in st.session_state:
+    # Try to load from environment (Streamlit secrets or .env)
     gemini = os.environ.get("GEMINI_API_KEY", "")
     groq = os.environ.get("GROQ_API_KEY", "")
     if gemini and gemini != "your_gemini_key_here":
         st.session_state["api_key"] = gemini
         st.session_state["provider"] = "Gemini"
+        st.session_state["key_configured"] = True
     elif groq and groq != "your_groq_key_here":
         st.session_state["api_key"] = groq
         st.session_state["provider"] = "Groq"
+        st.session_state["key_configured"] = True
+    else:
+        st.session_state["key_configured"] = False
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -311,14 +316,13 @@ def save_to_history(topic: str, mode: str, platform: str, tone: str, output: dic
         "output": output,
     }
     history.insert(0, entry)
-    history = history[:50]  # keep last 50
+    history = history[:50]
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, indent=2)
 
 
 # ── LLM Client ────────────────────────────────────────────────────────────────
 def call_gemini(api_key: str, prompt: str, retries: int = 2) -> str:
-    """Call Google Gemini free API."""
     import urllib.request
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     payload = json.dumps({
@@ -341,7 +345,6 @@ def call_gemini(api_key: str, prompt: str, retries: int = 2) -> str:
 
 
 def call_groq(api_key: str, prompt: str, retries: int = 2) -> str:
-    """Call Groq free API."""
     import http.client
     import ssl
 
@@ -366,7 +369,6 @@ def call_groq(api_key: str, prompt: str, retries: int = 2) -> str:
             conn.request("POST", "/openai/v1/chat/completions", body=payload, headers=headers)
             resp = conn.getresponse()
             raw = resp.read()
-            # handle gzip
             import gzip as _gzip
             encoding = resp.getheader("Content-Encoding", "")
             if "gzip" in encoding:
@@ -396,7 +398,7 @@ def generate_content(prompt: str) -> str:
     provider = st.session_state.get("provider", "Gemini")
     api_key = st.session_state.get("api_key", "")
     if not api_key:
-        raise RuntimeError("No API key set. Enter your key in the sidebar.")
+        raise RuntimeError("No API key set. Configure it in the sidebar.")
     if provider == "Gemini":
         return call_gemini(api_key, prompt)
     else:
@@ -404,7 +406,6 @@ def generate_content(prompt: str) -> str:
 
 
 def validate_key(provider: str, api_key: str) -> bool:
-    """Quick validation call."""
     try:
         if provider == "Gemini":
             result = call_gemini(api_key, "Reply with the word OK only.", retries=0)
@@ -412,9 +413,7 @@ def validate_key(provider: str, api_key: str) -> bool:
             result = call_groq(api_key, "Reply with the word OK only.", retries=0)
         return bool(result and len(result.strip()) > 0)
     except RuntimeError as e:
-        err = str(e)
-        # 429 = valid key, just rate limited — treat as valid
-        if "429" in err:
+        if "429" in str(e):
             return True
         return False
     except Exception:
@@ -548,7 +547,6 @@ def render_card(label: str, content: str, key_suffix: str = ""):
 
 
 def parse_quick_output(raw: str) -> dict:
-    """Parse labeled sections from quick generate output."""
     result = {}
     labels = {
         "HOOK 1": "hook1",
@@ -583,7 +581,6 @@ def parse_quick_output(raw: str) -> dict:
 
 
 def parse_generic_output(raw: str) -> dict:
-    """Parse generic labeled output (HOOK, SCRIPT, CTA, HASHTAGS, etc.)"""
     result = {}
     labels = ["HOOK", "SCRIPT", "CTA", "HASHTAGS", "THUMBNAIL TEXT 1", "THUMBNAIL TEXT 2"]
     current_key = None
@@ -619,7 +616,7 @@ def render_export_button(content_str: str, filename: str):
     )
 
 
-# ── Sidebar ────────────────────────────────────────────────────────────────────
+# ── Sidebar (SECURE - No API key display) ────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div class="forge-header">🎬 ReelForge</div>', unsafe_allow_html=True)
     st.markdown('<div class="forge-sub">AI Content Agent</div>', unsafe_allow_html=True)
@@ -633,21 +630,34 @@ with st.sidebar:
     else:
         st.caption("Get free key → [console.groq.com](https://console.groq.com)")
 
-    api_key = st.text_input(
-        "API Key",
+    # SECURE API KEY INPUT - No pre-filled value, no display
+    user_api_key = st.text_input(
+        "API Key (Optional)",
         type="password",
-        value=st.session_state.get("api_key", ""),
-        placeholder="Paste your key here",
+        value="",
+        placeholder="Paste your key here (only if not pre-configured)",
+        help="Your key is never stored or shown. Leave empty if already configured."
     )
-    if api_key:
-        st.session_state["api_key"] = api_key
+    
+    if user_api_key:
+        st.session_state["api_key"] = user_api_key
+        st.session_state["key_configured"] = True
+        st.success("✅ Key configured for this session")
+        st.rerun()
+
+    # Show status without revealing key
+    if st.session_state.get("key_configured") and st.session_state.get("api_key"):
+        st.success("🔒 API Key Active")
+    else:
+        st.warning("⚠️ No API Key - Enter one above")
+        st.info("💡 Tip: Set environment variable GEMINI_API_KEY or GROQ_API_KEY to auto-configure")
 
     if st.button("✓ Validate Key"):
-        if not api_key:
-            st.error("Enter an API key first.")
+        if not st.session_state.get("api_key"):
+            st.error("No API key configured.")
         else:
             with st.spinner("Testing…"):
-                ok = validate_key(st.session_state["provider"], api_key)
+                ok = validate_key(st.session_state["provider"], st.session_state["api_key"])
             if ok:
                 st.success("Key is valid ✓")
                 st.session_state["key_valid"] = True
@@ -686,7 +696,7 @@ with st.sidebar:
             st.rerun()
 
 
-# ── Main content ───────────────────────────────────────────────────────────────
+# ── Main content (same as before, no changes needed) ───────────────────────────────────────────────
 st.markdown('<div class="forge-header">ReelForge AI</div>', unsafe_allow_html=True)
 st.markdown('<div class="forge-sub">Short-form content generation agent for Reels & Shorts</div>', unsafe_allow_html=True)
 st.markdown("---")
@@ -743,7 +753,6 @@ with tab1:
         st.markdown("---")
         st.markdown(f"**Results for:** *{topic_label}*")
 
-        # Hooks
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<div class="hook-badge">Hook Option 1</div>', unsafe_allow_html=True)
@@ -752,7 +761,6 @@ with tab1:
             st.markdown('<div class="hook-badge">Hook Option 2</div>', unsafe_allow_html=True)
             st.code(p.get("hook2", "—"), language=None)
 
-        # Script
         script_text = p.get("script", "")
         st.markdown('<div class="output-card-label" style="color:#ff2d55;font-size:0.75rem;letter-spacing:2px;font-weight:600;text-transform:uppercase;margin-top:16px;">📝 SCRIPT</div>', unsafe_allow_html=True)
         char_count = len(script_text)
@@ -760,18 +768,15 @@ with tab1:
         color = "#34d399" if char_count <= MAX_CHARS_REELS else "#ff2d55"
         st.markdown(f'<div class="char-counter" style="color:{color}">{char_count} / {MAX_CHARS_REELS} chars (Reels max)</div>', unsafe_allow_html=True)
 
-        # CTA
         st.markdown('<div class="output-card-label" style="color:#ff6b35;font-size:0.75rem;letter-spacing:2px;font-weight:600;text-transform:uppercase;margin-top:16px;">📣 CALL TO ACTION</div>', unsafe_allow_html=True)
         st.code(p.get("cta", "—"), language=None)
 
-        # Thumbnails
         st.markdown('<div class="output-card-label" style="color:#ffd60a;font-size:0.75rem;letter-spacing:2px;font-weight:600;text-transform:uppercase;margin-top:16px;">🖼 THUMBNAIL TEXT IDEAS</div>', unsafe_allow_html=True)
         tc1, tc2, tc3 = st.columns(3)
         for col, key in zip([tc1, tc2, tc3], ["thumb1", "thumb2", "thumb3"]):
             with col:
                 st.code(p.get(key, "—"), language=None)
 
-        # Export
         export_str = f"""TOPIC: {topic_label}
 Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 {'='*50}
@@ -818,7 +823,6 @@ with tab2:
                 raw = generate_content(prompt)
                 progress.progress(85, text="Parsing JSON…")
 
-                # Strip markdown fences if present
                 clean = raw.strip()
                 if clean.startswith("```"):
                     lines = clean.split("\n")
@@ -983,7 +987,6 @@ with tab4:
     )
 
     st.markdown("**Choose Tone:**")
-    tone_cols = st.columns(5)
     tone_icons = {"Educational": "🎓", "Hype": "🔥", "Storytelling": "📖", "Controversial": "💥", "Relatable": "🙋"}
     tone_selected = st.radio(
         "Tone",
